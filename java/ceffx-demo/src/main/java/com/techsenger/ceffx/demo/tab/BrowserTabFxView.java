@@ -122,9 +122,9 @@ public class BrowserTabFxView extends AbstractTabFxView<BrowserTabPresenter> imp
     @Override
     protected void build() {
         super.build();
-        forwardButton.getStyleClass().addAll(StyleClasses.ICON_BUTTON, StyleClasses.SIZE_L);
-        backButton.getStyleClass().addAll(StyleClasses.ICON_BUTTON, StyleClasses.SIZE_L);
-        devToolsButton.getStyleClass().addAll(StyleClasses.ICON_BUTTON, StyleClasses.SIZE_L);
+        forwardButton.getStyleClass().addAll(StyleClasses.SIZE_L);
+        backButton.getStyleClass().addAll(StyleClasses.SIZE_L);
+        devToolsButton.getStyleClass().addAll(StyleClasses.SIZE_L);
         VBox.setVgrow(browserPane, Priority.ALWAYS);
         HBox.setHgrow(addressTextField, Priority.ALWAYS);
         content.getChildren().add(browserPane);

@@ -278,7 +278,7 @@ public class Demo extends Application {
         StackPane stickyArea = tabHeaderArea.getStickyArea();
         stickyArea.setPadding(new Insets(2, 0, 0, 0));
         var newTabButton = new Button(null, new FontIconView(new PlainFontIcon(0xF0415)));
-        newTabButton.getStyleClass().addAll(Styles.FLAT, StyleClasses.ICON_BUTTON);
+        newTabButton.getStyleClass().add(Styles.FLAT);
         newTabButton.setOnAction((e) -> onNewTab(null));
         stickyArea.getChildren().add(newTabButton);
         var workspacePresenter = new TabHostPresenter<>(workspaceView, new AreaParams());
