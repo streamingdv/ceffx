@@ -1,0 +1,175 @@
+name: Build
+
+# Builds the native code and the Maven artifacts for every platform PXPlay supports, and publishes
+# them as workflow artifacts. Nothing is deployed to a remote repository, so no credentials are
+# needed in a fork.
+#
+# Two artifacts are produced per platform:
+#   ceffx-jars-<platform>     the Maven artifacts, to be installed into a local repository
+#   ceffx-runtime-<platform>  the CEFFX binaries together with the CEF distribution they need,
+#                             which is what an application has to ship
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+env:
+  CEF_VERSION: "146.0.10+g8219561+chromium-146.0.7680.179"
+
+jobs:
+
+  # Built inside a 20.04 container rather than on the runner image, because a binary linked against
+  # a newer glibc or libstdc++ cannot be loaded on the oldest distribution we support.
+  linux:
+    runs-on: ubuntu-latest
+    container: ubuntu:20.04
+    steps:
+      - name: Install build dependencies
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            build-essential g++-10 python3 git curl ca-certificates tar unzip \
+            libx11-dev libxi-dev libgtk-3-dev
+          # 20.04 ships CMake 3.16, the build requires 3.21 or newer.
+          curl -fsSL https://github.com/Kitware/CMake/releases/download/v3.31.6/cmake-3.31.6-linux-x86_64.tar.gz \
+            | tar xz --strip-components=1 -C /usr/local
+
+      - uses: actions/checkout@v4
+
+      - name: Cache the CEF distribution
+        uses: actions/cache@v4
+        with:
+          path: native/cef
+          key: cef-linux-${{ env.CEF_VERSION }}
+
+      - name: Build native code
+        run: |
+          mkdir -p native/build && cd native/build
+          cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER=gcc-10 -DCMAKE_CXX_COMPILER=g++-10 ..
+          make -j$(nproc)
+
+      - name: Report the glibc requirement
+        run: |
+          echo "Highest glibc symbol required by libceffx.so:"
+          objdump -T native/build/src/Release/libceffx.so \
+            | grep -o 'GLIBC_[0-9.]*' | sort -V -u | tail -n 5
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build Maven artifacts
+        run: cd java && mvn -B -U install
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ceffx-jars-linux
+          path: |
+            java/ceffx-core/target/*.jar
+            java/ceffx-natives/target/*.jar
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ceffx-runtime-linux
+          path: native/build/src/Release
+
+  macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15-intel
+            arch: x86_64
+            platform: mac
+          - runner: macos-15
+            arch: arm64
+            platform: mac-aarch64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ant
+        run: brew install ant
+
+      - name: Cache the CEF distribution
+        uses: actions/cache@v4
+        with:
+          path: native/cef
+          key: cef-${{ matrix.platform }}-${{ env.CEF_VERSION }}
+
+      - name: Build native code
+        run: |
+          mkdir -p native/build && cd native/build
+          cmake -G "Xcode" -DPROJECT_ARCH="${{ matrix.arch }}" \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0 ..
+          xcodebuild -project ceffx.xcodeproj -configuration Release
+
+      - name: Report the deployment target
+        run: |
+          echo "Load commands of libceffx.dylib:"
+          otool -l native/build/src/Release/libceffx.dylib | grep -A 4 LC_BUILD_VERSION || true
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build Maven artifacts
+        run: cd java && mvn -B -U install
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ceffx-jars-${{ matrix.platform }}
+          path: |
+            java/ceffx-core/target/*.jar
+            java/ceffx-natives/target/*.jar
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ceffx-runtime-${{ matrix.platform }}
+          path: native/build/src/Release
+
+  windows:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache the CEF distribution
+        uses: actions/cache@v4
+        with:
+          path: native/cef
+          key: cef-win-${{ env.CEF_VERSION }}
+
+      - name: Build native code
+        run: |
+          mkdir native\build
+          cd native\build
+          cmake -G "Visual Studio 17" -A x64 ..
+          cmake --build . --config Release
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build Maven artifacts
+        run: cd java && mvn -B -U install
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ceffx-jars-win
+          path: |
+            java/ceffx-core/target/*.jar
+            java/ceffx-natives/target/*.jar
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ceffx-runtime-win
+          path: native/build/src/Release

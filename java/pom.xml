@@ -10,7 +10,9 @@
     <properties>
         <checkstyle.plugin.skip>true</checkstyle.plugin.skip>
         <maven.compiler.release>25</maven.compiler.release>
-        <javafx.version>26</javafx.version>
+        <!-- Kept in step with PXPlay so the library cannot compile against an API that is missing
+             at runtime. -->
+        <javafx.version>25</javafx.version>
         <publishing.plugin.exclusions>ceffx-demo</publishing.plugin.exclusions>
     </properties>
 

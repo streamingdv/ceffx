@@ -1,5 +1,6 @@
 # Techsenger CEFFX
 
+Custom experimental fork for using CEFFX in PXPlay.
 Techsenger CEFFX is a library for integrating the Chromium Embedded Framework into JavaFX applications. It is a port
 of [JCEF](https://github.com/chromiumembedded/java-cef) (commit d3de827), migrated from Swing to JavaFX. Designed
 specifically for JavaFX, CEFFX provides an optimized and efficient solution for working with Chromium on the platform.

@@ -56,4 +56,6 @@ Thumbs.db
 /native/tools/buildtools/win/clang-format.exe
 # Maven output directory
 target/
+# Local Gradle build of ceffx-core, for compiling against the API without Maven installed
+/.localbuild
 
