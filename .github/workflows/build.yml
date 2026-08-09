@@ -38,6 +38,10 @@ jobs:
           # 20.04 ships CMake 3.16, the build requires 3.21 or newer.
           curl -fsSL https://github.com/Kitware/CMake/releases/download/v3.31.6/cmake-3.31.6-linux-x86_64.tar.gz \
             | tar xz --strip-components=1 -C /usr/local
+          # No Maven in the image, and the one 20.04 packages is 3.6, which predates the JDK in use.
+          curl -fsSL https://archive.apache.org/dist/maven/maven-3/3.9.9/binaries/apache-maven-3.9.9-bin.tar.gz \
+            | tar xz -C /opt
+          echo "/opt/apache-maven-3.9.9/bin" >> "$GITHUB_PATH"
 
       - uses: actions/checkout@v4
 
